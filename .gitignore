@@ -1,3 +1,22 @@
+# Entornos virtuales
+.venv*/
+venv/
+env/
 
-.python-version
+# Python basura
+__pycache__/
+*.py[cod]
+*$py.class
 
+# Jupyter Notebooks (Archivos temporales de guardado automático)
+.ipynb_checkpoints/
+checkpoint/
+.virtual_documents/
+
+# Configuración de editores
+.vscode/
+.idea/
+
+# macOS / Linux basura de sistema
+.DS_Store
+.directory

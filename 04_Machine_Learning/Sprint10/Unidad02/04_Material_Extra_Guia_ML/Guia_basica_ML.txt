@@ -1,0 +1,228 @@
+# Manipulación de datos
+import pandas as pd
+import numpy as np
+
+# Visualización
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Modelado y preprocesamiento
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, OneHotEncoder
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+
+# Modelos de ejemplo
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+
+# Métricas
+from sklearn.metrics import accuracy_score, f1_score, mean_squared_error, r2_score
+
+# Otros
+import warnings
+warnings.filterwarnings('ignore')  # evita mensajes molestos en el notebook
+
+pd.options.mode.copy_on_write = True
+
+# Cargar un CSV
+df = pd.read_csv("data/ejemplo_housing.csv")
+
+# Primeras filas para ver cómo es el dataset
+df.head()
+
+# Información básica del dataset
+df.info()
+
+# Estadísticas básicas de las columnas numéricas
+df.describe()
+
+
+# Revisar valores faltantes
+print(df.isna().sum())
+
+# Rellenar NaN simples (ejemplo con media)
+df['edad'] = df['edad'].fillna(df['edad'].mean())
+
+# Eliminar filas duplicadas si es necesario
+df = df.drop_duplicates()
+
+# Revisar tipos de datos
+print(df.dtypes)
+
+# Clasificación
+sns.countplot(x='target', data=df)
+
+# Regresión
+sns.histplot(df['target'])
+
+# Matriz de correlaciones
+sns.heatmap(df.corr(numeric_only = True), annot=True, vmin = -1, vmax = 1, cmap='coolwarm')
+
+# Ejemplo: Histograma para todas las features numéricas
+df.hist(figsize=(12,8), bins=20)
+
+# Scatterplot para regresión
+sns.scatterplot(x='feature1', y='target', data=df)
+
+# Boxplot para clasificación
+sns.boxplot(x='target', y='feature2', data=df)
+
+# Eliminar columnas manualmente
+df.drop(columns=['feature1', 'feature2'])
+
+# Eliminar duplicados completos
+df.drop_duplicates()
+
+# Eliminar duplicados según una o varias columnas
+df.drop_duplicates(subset=['cliente'], keep='last')
+
+# Eliminar filas con missings
+df.dropna()
+
+# Imputar con la media
+df['feature'] = df['feature'].fillna(df['feature'].mean())
+
+# One-hot encoding
+pd.get_dummies(df, columns=['city'])
+
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Crear y entrenar el modelo
+model = LogisticRegression(max_iter=1000)
+model.fit(X_train, y_train)
+
+# REGRESION LOGISTICA
+grid_logreg = {
+                     "penalty": ["l1","l2"], # Regularizaciones L1 y L2.
+                     "C": [0.1, 0.5, 1.0, 5.0], # Cuanta regularizacion queremos
+
+                     "max_iter": [50,100,500],  # Iteraciones del Gradient Descent. No suele impactar mucho
+                                                # pero en ocasiones aparecen warnings diciendo que se aumente
+
+                     "solver": ["liblinear"]  # Suele ser el más rápido
+                    }
+
+
+# ARBOL DE DECISION
+grid_arbol = {
+    "max_depth": list(range(1, 10)),
+    "min_samples_split": [2, 5, 10],
+    "min_samples_leaf": [1, 2, 5]
+}
+
+# RANDOM FOREST
+grid_random_forest = {"n_estimators": [120], # El Random Forest no suele empeorar por exceso de
+                                             # estimadores. A partir de cierto numero no merece la pena
+                                             # perder el tiempo ya que no mejora mucho más la precisión.
+                                             # Entre 100 y 200 es una buena cifra
+
+
+                     "max_depth": [3,4,5,6,10,15,17], # No le afecta tanto el overfitting como al decissiontree.
+                                                      # Podemos probar mayores profundidades
+
+                     "max_features": ["sqrt", 3, 4] # Numero de features que utiliza en cada split.
+                                                    # cuanto más bajo, mejor generalizará y menos overfitting.
+
+                     }
+
+
+# GRADIENT BOOSTING
+grid_gradient_boosting = {"loss": ["log_loss"],
+                          "learning_rate": [0.05, 0.1, 0.2, 0.4, 0.5],  # Cuanto más alto, mas aporta cada nuevo arbol
+
+                          "n_estimators": [20,50,100,200], # Cuidado con poner muchos estiamdores ya que vamos a
+                                                           # sobreajustar el modelo
+
+                          "max_depth": [1,2,3,4,5], # No es necesario poner una profundiad muy alta. Cada nuevo
+                                                    # arbol va corrigiendo el error de los anteriores.
+
+
+                          "max_features": ["sqrt", 3, 4], # Igual que en el random forest
+                          }
+
+# Modelo base
+model = LogisticRegression(max_iter=1000)
+
+# Grid de hiperparámetros
+param_grid = {
+    "C": [0.01, 0.1, 1, 10],
+    "penalty": ["l2"]
+}
+
+# GridSearch
+grid = GridSearchCV(
+    estimator=model,
+    param_grid=param_grid,
+    cv=5,
+    scoring="accuracy",
+    n_jobs=-1
+)
+
+# Entrenamiento SOLO con train
+grid.fit(X_train, y_train)
+
+# Mejor modelo encontrado
+best_model = grid.best_estimator_
+
+print("Mejores hiperparámetros:", grid.best_params_)
+print("Mejor score CV:", grid.best_score_)
+
+from sklearn.linear_model import Ridge, Lasso, ElasticNet
+
+# Ridge (L2)
+ridge = Ridge(alpha=1.0)
+ridge.fit(X_train, y_train)
+print("Ridge RMSE:", round(mean_squared_error(y_test, ridge.predict(X_test), squared=False), 2))
+
+# Lasso (L1)
+lasso = Lasso(alpha=0.1)
+lasso.fit(X_train, y_train)
+print("Lasso RMSE:", round(mean_squared_error(y_test, lasso.predict(X_test), squared=False), 2))
+
+# ElasticNet (L1 + L2)
+en = ElasticNet(alpha=0.1, l1_ratio=0.5)
+en.fit(X_train, y_train)
+print("ElasticNet RMSE:", round(mean_squared_error(y_test, en.predict(X_test), squared=False), 2))
+
+# Predicciones
+y_train_pred = model.predict(X_train)
+y_test_pred = model.predict(X_test)
+
+# Evaluación
+print("Train RMSE:", round(mean_squared_error(y_train, y_train_pred, squared=False), 2))
+print("Test RMSE:", round(mean_squared_error(y_test, y_test_pred, squared=False), 2))
+print("Train R2:", round(r2_score(y_train, y_train_pred), 2))
+print("Test R2:", round(r2_score(y_test, y_test_pred), 2))
+
+# Cross-validation
+cv_scores = cross_val_score(model, X, y, cv=5, scoring='r2')
+print("Cross-validated R2:", round(cv_scores.mean(), 2))
+
+# Predicciones
+y_train_pred = model.predict(X_train)
+y_test_pred = model.predict(X_test)
+
+# Métricas
+print("Train Accuracy:", round(accuracy_score(y_train, y_train_pred), 3))
+print("Test Accuracy:", round(accuracy_score(y_test, y_test_pred), 3))
+print("Test Precision:", round(precision_score(y_test, y_test_pred), 3))
+print("Test Recall:", round(recall_score(y_test, y_test_pred), 3))
+print("Test F1:", round(f1_score(y_test, y_test_pred), 3))
+
+# Matriz de confusión
+c_matrix = confusion_matrix(y_test, y_test_pred)
+sns.heatmap(c_matrix, annot=True, fmt='d', cmap='Blues')
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.title('Confusion Matrix')
+plt.show()
+
+# Cross-validation para detectar overfitting
+cv_scores = cross_val_score(model, X, y, cv=5, scoring='accuracy')
+print("Cross-validated Accuracy:", round(cv_scores.mean(), 3))
